@@ -1,0 +1,72 @@
+clc
+clear all
+close all
+
+load pitch_data.mat
+
+f = figure;
+movegui(f,'northwest');
+plot(tt_pitch,pitch); title('Pitch');xlabel('Time');
+
+t=length(tt_pitch);
+% I now want to break this into trials with continuous pitch
+% My final Data Structure 'PitchTrials' should have pitch and timestamp
+
+trialCount=0;
+i=1;
+PitchTrials(1:300)=struct('time',{[]},'pitch',{[]});
+
+while i<t
+    while isfinite(pitch(i))
+        PitchTrials(trialCount).time     =[PitchTrials(trialCount).time, tt_pitch(i)];
+        PitchTrials(trialCount).pitch    = [PitchTrials(trialCount).pitch, pitch(i)];
+        i=i+1;
+    end
+    if isfinite(pitch(i+1))
+        trialCount=trialCount+1;
+    end
+    i=i+1;
+end
+
+ActualTrials= PitchTrials(1:trialCount);
+save('AllTrials','ActualTrials')
+% Each PitchTrial should have continuous pitch atleast for a 'Threshold'
+% sample time i.e. the size of each trial should be atleast 'Threshold'
+% I have stored both the actualTrials and the FinalTrials (above threshold)
+Threshold=10;
+finaltrialcount=0;
+FinalTrials(1:200)=struct('time',{[]},'pitch',{[]});
+for i=1:trialCount
+    if length(PitchTrials(i).time)>Threshold
+        finaltrialcount=finaltrialcount+1;
+        FinalTrials(finaltrialcount)=PitchTrials(i);
+    end
+end
+FinalTrials = FinalTrials(1:finaltrialcount);
+
+
+% f = figure;
+% movegui(f,'northeast');
+% % Plotting individual trials
+% for i=1:finaltrialcount
+%     plot(FinalTrials(i).time,FinalTrials(i).pitch)
+%     title(['Trial number : ',num2str(i)])
+%     xlabel('time');ylabel('Pitch')
+%     pause
+%     hold on
+% end
+
+% Now I want to categorize these into low (<120), medium(120-145 and high(<145) pitches
+
+for i=1:finaltrialcount
+    meanPitch=mean(FinalTrials(i).pitch);
+    if meanPitch<120
+        FinalTrials(i).label='Low';
+    elseif meanPitch>145
+        FinalTrials(i).label='High';
+    else
+        FinalTrials(i).label='Medium';
+    end    
+end
+
+save('LabelledFinalTrials','FinalTrials');
